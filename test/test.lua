@@ -1500,7 +1500,7 @@ function rnntest.Recurrent_checkgrad()
    local sequence = torch.Tensor{1, 2, 1, 2}:resize(4, 1)
    local parameters, grads = rnn:getParameters()
    
-   function f(x)
+   local function f(x)
       parameters:copy(x)
       -- Do the forward prop
       rnn:zeroGradParameters()
@@ -1537,7 +1537,7 @@ function rnntest.LSTM_checkgrad()
    local targets = torch.Tensor{1, 2, 1, 2}:resize(4, 1)
    local parameters, grads = rnn:getParameters()
    
-   function f(x)
+   local function f(x)
       parameters:copy(x)
       -- Do the forward prop
       rnn:zeroGradParameters()
@@ -1555,6 +1555,40 @@ function rnntest.LSTM_checkgrad()
 
    local err = optim.checkgrad(f, parameters:clone())
    mytester:assert(err < 0.0001, "LSTM optim.checkgrad error")
+end
+
+function rnntest.checkDistributeGrad()
+   if not pcall(function() require 'optim' end) then return end
+   local vocabSize = 3
+   local embeddingDim = 10
+
+   local model = nn.Sequential()
+     :add(nn.ParallelTable()
+       :add(nn.Sequencer(nn.LookupTable(vocabSize, embeddingDim)))
+       :add(nn.Identity())
+     )
+     :add(nn.Distribute(nn.CAddTable()))
+     :add(nn.JoinTable(1))
+
+   local criterion = nn.CrossEntropyCriterion()
+
+   local parameters, grads = model:getParameters()
+   local inputs = {torch.Tensor{1, 2, 3}:split(1), torch.randn(embeddingDim)}
+   local targets = torch.Tensor{1, 2, 3}
+
+   local function f(x)
+     parameters:copy(x)
+     model:zeroGradParameters()
+     local outputs = model:forward(inputs)
+     local err = criterion:forward(outputs, targets)
+     local gradOutputs = criterion:backward(outputs, targets)
+     model:backward(inputs, gradOutputs)
+     return err, grads
+   end
+
+   local err = optim.checkgrad(f, parameters:clone())
+
+   mytester:assert(err < 0.0001, "Distribute optim.checkgrad error")
 end
 
 

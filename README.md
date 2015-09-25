@@ -9,6 +9,7 @@ This library includes documentation for the following objects:
  * [LSTM](#rnn.LSTM) : a vanilla Long-Short Term Memory module;
   * [FastLSTM](#rnn.FastLSTM) : a faster [LSTM](#rnn.LSTM);
  * [Sequencer](#rnn.Sequencer) : applies an encapsulated module to all elements in an input sequence;
+ * [Distribute](#rnn.Distribute) : applies an encapsulated module to all elements in an input sequence, and distribute other inputs over each step in the sequence;
  * [BiSequencer](#rnn.BiSequencer) : used for implementing Bidirectional RNNs and LSTMs;
  * [BiSequencerLM](#rnn.BiSequencerLM) : used for implementing Bidirectional RNNs and LSTMs for language models;
  * [Repeater](#rnn.Repeater) : repeatedly applies the same input to an AbstractRecurrent instance;
@@ -414,6 +415,16 @@ Accepted values for argument `mode` are as follows :
 
 ### forget() ###
 Calls the decorated AbstractRecurrent module's `forget` method.
+
+<a name='rnn.Distribute'></a>
+## Distribute ##
+The `nn.Distribute` module acts on its first input (a table) the same
+way sequencer does, but it distributes all other arguments over each
+time step.
+
+```lua
+nn.Distribute:forward({{t1, t2, 3}, x, y}) = nn.Sequencer:forward({{t1, x, y}, {t2, x, y}, {t3, x, y}})
+```
 
 <a name='rnn.BiSequencer'></a>
 ## BiSequencer ##

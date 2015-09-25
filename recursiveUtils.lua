@@ -153,3 +153,18 @@ function rnn.recursiveNew(t2)
            ..torch.type(t2).." instead")
    end
 end
+
+function rnn.recursiveClone(t2)
+   if torch.type(t2) == 'table' then
+      local t1 = {}
+      for key,_ in pairs(t2) do
+         t1[key] = rnn.recursiveClone(t2[key])
+      end
+      return t1
+   elseif torch.isTensor(t2) then
+      return t2:clone()
+   else
+      error("expecting tensor or table thereof. Got "
+           ..torch.type(t2).." instead")
+   end
+end
